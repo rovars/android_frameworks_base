@@ -35,9 +35,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.internal.colorextraction.ColorExtractor;
 import com.android.internal.colorextraction.ColorExtractor.GradientColors;
-import com.android.internal.colorextraction.ColorExtractor.OnColorsChangedListener;
 import com.android.internal.graphics.ColorUtils;
 import com.android.internal.util.function.TriConsumer;
 import com.android.keyguard.KeyguardUpdateMonitor;
@@ -69,8 +67,7 @@ import javax.inject.Singleton;
  * security method gets shown).
  */
 @Singleton
-public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnColorsChangedListener,
-        Dumpable {
+public class ScrimController implements ViewTreeObserver.OnPreDrawListener, Dumpable {
 
     static final String TAG = "ScrimController";
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
@@ -149,7 +146,6 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
     private final KeyguardVisibilityCallback mKeyguardVisibilityCallback;
     private final Handler mHandler;
 
-    private final SysuiColorExtractor mColorExtractor;
     private GradientColors mColors;
     private boolean mNeedsDrawableColorUpdate;
 
@@ -226,9 +222,11 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
             }
         });
 
-        mColorExtractor = sysuiColorExtractor;
-        mColorExtractor.addOnColorsChangedListener(this);
-        mColors = mColorExtractor.getNeutralColors();
+        mColors = new GradientColors();
+        mColors.setMainColor(-14671580);
+        mColors.setSecondaryColor(-14671580);
+        mColors.setColorPalette(new int[] {-14671580});
+        mColors.setSupportsDarkText(false);
         mNeedsDrawableColorUpdate = true;
     }
 
@@ -939,13 +937,6 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, OnCo
 
     public void setCurrentUser(int currentUser) {
         // Don't care in the base class.
-    }
-
-    @Override
-    public void onColorsChanged(ColorExtractor colorExtractor, int which) {
-        mColors = mColorExtractor.getNeutralColors();
-        mNeedsDrawableColorUpdate = true;
-        scheduleUpdate();
     }
 
     @Override
