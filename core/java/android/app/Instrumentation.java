@@ -41,7 +41,6 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.TestLooperManager;
 import android.os.UserHandle;
 import android.util.AndroidRuntimeException;
@@ -61,11 +60,8 @@ import com.android.internal.content.ReferrerIntent;
 import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.android.internal.util.lineage.PixelPropsUtils;
 
 /**
  * Base class for implementing application instrumentation code.  When running
@@ -1161,9 +1157,6 @@ public class Instrumentation {
         Application app = getFactory(context.getPackageName())
                 .instantiateApplication(cl, className);
         app.attach(context);
-        String packageName = app.getPackageName();
-        PixelPropsUtils.setProps(packageName);
-        maybeSpoofBuild(app);
         return app;
     }
     
@@ -1181,47 +1174,7 @@ public class Instrumentation {
             ClassNotFoundException {
         Application app = (Application)clazz.newInstance();
         app.attach(context);
-        String packageName = app.getPackageName();
-        PixelPropsUtils.setProps(packageName);
-        maybeSpoofBuild(app);
         return app;
-    }
-
-    private static void setBuildField(String packageName, String key, String value) {
-        /*
-         * This would be much prettier if we just removed "final" from the Build fields,
-         * but that requires changing the API.
-         *
-         * While this an awful hack, it's technically safe because the fields are
-         * populated at runtime.
-         */
-        try {
-            // Unlock
-            Field field = Build.class.getDeclaredField(key);
-            field.setAccessible(true);
-
-            // Edit
-            field.set(null, value);
-
-            // Lock
-            field.setAccessible(false);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            Log.e(TAG, "Failed to spoof Build." + key + " for " + packageName, e);
-        }
-    }
-
-    private static void maybeSpoofBuild(Application app) {
-        /**
-         * Set fingerprint to make SafetyNet pass
-         * Use walleye oreo fingerprint which passes safetynet and
-         * doesn't require updating every month
-        */
-        String snetFp = "google/walleye/walleye:8.1.0/OPM1.171019.011/4448085:user/release-keys";
-        String packageName = app.getPackageName();
-
-        if ("com.google.android.gms".equals(packageName)) {
-            setBuildField(packageName, "FINGERPRINT", snetFp);
-        }
     }
 
     /**
@@ -1238,7 +1191,7 @@ public class Instrumentation {
     public void callApplicationOnCreate(Application app) {
         app.onCreate();
     }
-
+    
     /**
      * Perform instantiation of an {@link Activity} object.  This method is intended for use with
      * unit tests, such as android.test.ActivityUnitTestCase.  The activity will be useable
